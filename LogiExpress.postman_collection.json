@@ -1,0 +1,508 @@
+{
+  "info": {
+    "name": "LogiExpress API",
+    "description": "Ejecutar en orden con la base recién creada (docker compose down -v && docker compose up -d).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001/api"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Status",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/status",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "status"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Endpoints",
+      "item": [
+        {
+          "name": "1. GET envíos activos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/envios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "envios"
+              ]
+            },
+            "description": "Endpoint 5. Envíos REGISTRADO/EN_TRANSITO con cliente, direcciones y paquetes."
+          }
+        },
+        {
+          "name": "2. POST crear envío",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/envios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "envios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": 2,\n  \"direccionOrigenId\": 4,\n  \"direccionDestinoId\": 5,\n  \"destinatario\": \"Jorge Salinas\",\n  \"costoTotal\": 600,\n  \"paquetes\": [\n    {\n      \"peso\": 4.5,\n      \"dimensiones\": \"40x30x25 cm\",\n      \"contenido\": \"Juguetes\",\n      \"almacenId\": 2\n    },\n    {\n      \"peso\": 1,\n      \"dimensiones\": \"20x15x10 cm\",\n      \"contenido\": \"Cables\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Endpoint 1. Responde 201; con la base limpia el envío nuevo es el id 6."
+          }
+        },
+        {
+          "name": "3. PUT cambiar costo (trigger auditoría)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/envios/6/costo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "envios",
+                "6",
+                "costo"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"costoTotal\": 675.5,\n  \"usuario\": \"jsupervisor\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Endpoint 2. La respuesta incluye el registro que creó el trigger en auditoria_envios."
+          }
+        },
+        {
+          "name": "4. POST paquete a almacén (trigger capacidad)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/almacenes/3/paquetes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "almacenes",
+                "3",
+                "paquetes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"envioId\": 3,\n  \"peso\": 2,\n  \"dimensiones\": \"30x20x10 cm\",\n  \"contenido\": \"Zapatos\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Endpoint 3. 1ª vez: 201. 2ª vez: 400 con sqlState 45000 (almacén lleno)."
+          }
+        },
+        {
+          "name": "5a. POST rastreo EN_TRANSITO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/envios/6/rastreo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "envios",
+                "6",
+                "rastreo"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ubicacionActual\": \"CEDIS Monterrey\",\n  \"estadoEvento\": \"EN_TRANSITO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Endpoint 4. El estado del envío no cambia."
+          }
+        },
+        {
+          "name": "5b. POST rastreo ENTREGADO (trigger estado)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/envios/6/rastreo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "envios",
+                "6",
+                "rastreo"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ubicacionActual\": \"Guadalajara\",\n  \"estadoEvento\": \"ENTREGADO\",\n  \"observaciones\": \"Recibió Jorge\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Endpoint 4. El trigger cambia el envío a ENTREGADO y llena fechaEntrega."
+          }
+        },
+        {
+          "name": "6. GET historial de un cliente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/clientes/2/envios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clientes",
+                "2",
+                "envios"
+              ]
+            },
+            "description": "Endpoint 6."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Errores esperados",
+      "item": [
+        {
+          "name": "Cliente INACTIVO → 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/envios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "envios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": 4,\n  \"direccionOrigenId\": 8,\n  \"direccionDestinoId\": 8,\n  \"destinatario\": \"X\",\n  \"costoTotal\": 100,\n  \"paquetes\": [\n    {\n      \"peso\": 1,\n      \"dimensiones\": \"10x10x10 cm\",\n      \"contenido\": \"Prueba\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Dirección de otro cliente → 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/envios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "envios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": 1,\n  \"direccionOrigenId\": 1,\n  \"direccionDestinoId\": 4,\n  \"destinatario\": \"X\",\n  \"costoTotal\": 100,\n  \"paquetes\": [\n    {\n      \"peso\": 1,\n      \"dimensiones\": \"10x10x10 cm\",\n      \"contenido\": \"Prueba\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Envío sin paquetes → 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/envios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "envios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": 1,\n  \"direccionOrigenId\": 1,\n  \"direccionDestinoId\": 2,\n  \"destinatario\": \"X\",\n  \"costoTotal\": 100,\n  \"paquetes\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Rastreo a envío ENTREGADO → 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/envios/1/rastreo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "envios",
+                "1",
+                "rastreo"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ubicacionActual\": \"X\",\n  \"estadoEvento\": \"EN_TRANSITO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Estado de evento inválido → 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/envios/3/rastreo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "envios",
+                "3",
+                "rastreo"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ubicacionActual\": \"X\",\n  \"estadoEvento\": \"PERDIDO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Costo sin usuario → 400",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/envios/3/costo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "envios",
+                "3",
+                "costo"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"costoTotal\": 100\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Envío inexistente → 404",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/envios/999/costo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "envios",
+                "999",
+                "costo"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"costoTotal\": 100,\n  \"usuario\": \"x\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Almacén inexistente → 404",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/almacenes/99/paquetes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "almacenes",
+                "99",
+                "paquetes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"envioId\": 3,\n  \"peso\": 1,\n  \"dimensiones\": \"10x10x10 cm\",\n  \"contenido\": \"Prueba\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Cliente inexistente → 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/clientes/99/envios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "clientes",
+                "99",
+                "envios"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
